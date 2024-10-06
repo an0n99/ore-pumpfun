@@ -1,16 +1,8 @@
 import React, { useState } from 'react';
 import '../App.css'; 
 import { useNavigate } from 'react-router-dom';
-import {
-  Connection,
-  clusterApiUrl,
-  Keypair,
-} from "@solana/web3.js";
-import {
-  createMint,
-  getOrCreateAssociatedTokenAccount,
-  mintTo,
-} from "@solana/spl-token";
+import { abi } from './abi'; 
+import { ethers } from 'ethers';
 
 const TokenCreate = () => {
   const [name, setName] = useState('');
@@ -20,64 +12,29 @@ const TokenCreate = () => {
   const navigate = useNavigate();
 
   const handleCreate = async () => {
-    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+    const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      console.log(signer)
+      const contract = new ethers.Contract(process.env.REACT_APP_CONTRACT_ADDRESS, abi, signer);
 
-    try {
-      const provider = window.solana;
-      if (!provider || !provider.isPhantom) {
-        throw new Error("Solana wallet not found");
-      }
-      
-      await provider.connect();
-      const payer = provider.publicKey;
+      const transaction = await contract.createMemeToken(name, ticker, imageUrl, description,{
+        value: ethers.parseUnits("0.0001", 'ether'),
+      }); 
+      const receipt = await transaction.wait();
 
-      const mintAuthority = Keypair.generate();
-
-      // Create the token mint
-      const tokenMint = await createMint(
-        connection,
-        payer,
-        mintAuthority.publicKey,
-        null,
-        9 // Decimals for the token
-      );
-
-      console.log("Token Mint Address:", tokenMint.toBase58());
-
-      // Get the token account of the payer
-      const tokenAccount = await getOrCreateAssociatedTokenAccount(
-        connection,
-        payer,
-        tokenMint,
-        payer
-      );
-
-      // Mint some tokens to the payer's token account
-      await mintTo(
-        connection,
-        payer,
-        tokenMint,
-        tokenAccount.address,
-        mintAuthority,
-        200000 // Initial amount to mint (200k tokens)
-      );
-
-      alert(`Token successfully created! Address: ${tokenMint.toBase58()}`);
-      navigate('/');
-    } catch (e) {
-      console.error("An error occurred while creating the token", e);
-      alert(`Error: ${e.message}`);
-    }
+      alert(`Transaction successful! Hash: ${receipt.hash}`);
+    console.log('Creating token:', { name, ticker, description, imageUrl });
+    navigate('/'); 
   };
 
   return (
     <div className="app">
       <nav className="navbar">
-        <button className="nav-button" onClick={connectWallet}>[connect wallet]</button>
+        <button className="nav-button">[connect wallet]</button>
       </nav>
       <div className="token-create-container">
-        <h3 className="start-new-coin" onClick={() => navigate('/')}>[go back]</h3>
-        <p className="info-text">MemeCoin creation fee: 0.01 ORE</p>
+      <h3 className="start-new-coin" onClick={() => navigate('/')}>[go back]</h3>
+        <p className="info-text">MemeCoin creation fee: 0.01 ORE </p>
         <p className="info-text">Max supply: 1 million tokens. Initial mint: 200k tokens.</p>
         <p className="info-text">If funding target of 24 ORE is met, a liquidity pool will be created on Raydium.</p>
         <div className="input-container">
