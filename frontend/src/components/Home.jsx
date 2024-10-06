@@ -53,8 +53,6 @@ const App = () => {
   return (
     <div className="app">
       <nav className="navbar">
-        <a href="#" className="nav-link">[moralis]</a>
-        <a href="#" className="nav-link">[docs]</a>
         <button className="nav-button">[connect wallet]</button>
       </nav>
       <div className="card-container">
